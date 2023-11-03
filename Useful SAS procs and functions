@@ -1,0 +1,164 @@
+data SampleData;
+  input @8 firstname$ secondname$; /****using @8 --- > SAS will put firstname from 8th column***/
+  datalines;
+Mishra Deny
+Uprety Anisha
+Sigdel Anand
+Paudel Raajan Subedi Krishna
+Khanal Ramhari Sigdel Rajesh
+;
+run;
+
+
+
+data SampleData1;
+  input @8firstname$ @1secondname$; /***First name from 8th column (@8) and last name from 1st column (@1)**/
+  datalines;
+Mishra Deny
+Uprety Anisha
+Sigdel Anand
+Paudel Raajan Subedi Krishna
+Khanal Ramhari Sigdel Rajesh
+;
+run;
+
+
+data SampleData4;
+  input firstname$ secondname$ Age @@; /***First name from 8th column (@8) and last name from 1st column (@1)**/
+  datalines;
+Mishra Deny 23
+Uprety Anisha 33
+Sigdel Anand 45
+Paudel Raajan  29
+Khanal Ramhari 25 Sigdel Rajesh 26 Subedi Krishna 42
+;
+run;
+
+
+/********************************************************************************************/
+/***CHANGING character variable AgeStr into numeric variable*******************************/
+data SampleData;
+  input Name $ AgeStr $ Height;
+  datalines;
+John 25 70
+Alice 30 65
+Bob 40 72
+Eve 22 63
+Michael 35 74
+;
+run;
+
+data ConvertedData;
+  set SampleData;
+  
+  /* Use the INPUT function to convert AgeStr from character to numeric */
+  Age = input(AgeStr, 3.); /* '3.' specifies the width of the numeric variable */
+  
+  /* Drop the character AgeStr variable */
+  drop AgeStr;
+run;
+proc contents data=ConvertedData; /***contents command will help to display whether variables are now numeric or character**/
+run;
+proc means print data = ConvertedData; var Age;run;/**if mean of Age varialbe is calcuated we are confirm that is now numeric variable**/
+/************************************************************************************************************/
+/************************************************************************************************************/
+/************************************************************************************************************/
+/************************************************************************************************************/
+/*****USE OF RETAIN FUNCTION *****/
+data ExpensesData;
+  input Month Expense;
+  datalines;
+1 1000
+2 1500
+3 1200
+4 1800
+5 1300
+;
+
+data CumulativeExpenses;
+  set ExpensesData;
+
+  /* Initialize and retain the cumulative expense */
+  retain CumulativeSum 0;
+
+  CumulativeSum + Expense;
+run;
+proc print data = CumulativeExpenses;run;
+
+/************************************************************************************************************/
+/******************RENAME --- USING Two DIfferent Approaches*************************************************/
+/************************************************************************************************************/
+data original;
+   input ID Age Height Weight;
+   datalines;
+1 30 175 70
+2 25 160 55
+3 35 180 75
+;
+run;
+proc print data=original;run;
+/***METHOD I*****/
+data renamed_data1;
+   set original;
+   rename Height = Ht Weight = Wt;
+run;
+/***METHOD II*****/
+data renamed_data2(rename=(Height=Het Weight=Wit));
+   set original;
+run;
+
+
+/************************************************************************************************************/
+/******************WHERE --- USING Two DIfferent Approaches*************************************************/
+/************************************************************************************************************/
+data mydata;
+   input ID Age Gender $ Height Weight;
+   datalines;
+1 35 Male 175 70
+2 28 Female 160 55
+3 42 Male 180 75
+4 22 Female 155 50
+5 38 Male 170 68
+;
+run;
+
+/***** Method 1: Using the WHERE Dataset Option ******/
+data filtered_data1;
+   set mydata(where=(Age > 30));
+run;
+
+/******* Method 2: Using the WHERE Statement *******/
+data filtered_data2;
+   set mydata;
+   where Age > 30;
+run;
+
+/************************************************************************************************************/
+/******************************TRANPOSE*************************************************/
+/************************************************************************************************************/
+
+
+data sales_data;
+input Product $ Quarter $ Sales;
+datalines;
+A Q1 100
+A Q2 150
+A Q3 200
+B Q1 75
+B Q2 125
+B Q3 175
+;
+run;
+proc print data = sales_data;run;
+data sales_data;
+set sorted_sales;
+proc sort data = sales_data out = sorted_sales; by descending Quarter ; run;
+proc print data = sorted_sales;run;
+
+proc transpose data=sales_data out=transposed_sales prefix=Sales_;
+by Quarter;
+var Sales;
+run;
+
+
+
