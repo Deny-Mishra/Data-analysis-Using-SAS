@@ -1,0 +1,265 @@
+data student1;
+input First_name$ Second_name$ class$ Price Frame_material$ weight bike_height;
+datalines;
+Black Bora  Track 796 Aluminum 24 55
+Delta Breeze Road 399 CroMoly 27 58
+Jet Stream Track 1130 CroMoly 28 56
+Mistral Smith  Road 1995 Carbon 20 54
+Nor'easter Raj Mountain 899 Aluminum 28 60
+Santa Ana Mountain 459 Aluminum 30 59
+Scirocco Adhikari Mountain 2256 Titanium 18 61
+Trade Wind Road 759 Aluminum 25 57
+Cyclone Johnson Mountain 1500 Carbon 21 60
+Hurricane Patel Road 650 Aluminum 26 58
+Tornado Kim Track 980 Aluminum 22 56
+Typhoon Lee Mountain 1899 Carbon 19 60
+Whirlwind Davis Road 499 Aluminum 27 58
+Monsoon Chen Track 750 Aluminum 24 56
+Gale Smith Mountain 1050 Carbon 22 60
+Breeze Johnson Road 350 Aluminum 28 58
+Thunder Brown Mountain 2150 Titanium 19 61
+Rainstorm Garcia Road 725 Aluminum 29 59
+Hail Jackson Track 890 Aluminum 23 55
+Storm Williams Mountain 1800 Carbon 21 60
+Sunshine Taylor Road 550 Aluminum 25 58
+Cloud Johnson Track 1000 Aluminum 22 56
+Fog Miller Mountain 1350 Carbon 20 60
+Snow White Road 475 Aluminum 27 59
+Sleet Davis Track 850 Aluminum 23 55
+Ice Patel Mountain 2000 Carbon 19 60
+Dust StormKim Road 675 Aluminum 26 58
+Mudslide Smith Track 950 Aluminum 22 56
+Avalanche Chen Mountain 2100 Titanium 20 61
+Earthquake Wilson Road 600 Aluminum 24 55
+Volcano Brown Track 850 Aluminum 21 56
+Tsunami Garcia Mountain 1950 Carbon 18 60
+run;
+
+
+
+%let dataset = student1;
+%let varaible1 = Price;
+%let variable2 = class;
+
+proc univariate data = &dataset; boxplot weight;run;
+
+
+
+
+
+
+
+
+
+
+
+proc print data = student1;run;
+/*********************************************************************************************************/
+proc print data = student1 (obs = 10 keep = First_name  Price weight bike_height);run;
+/*********************************************************************************************************/
+/**********************USE OF ODS*******************************/
+/*********************************************************************************************************/
+/***PDF FORMTAT*******/
+ods pdf /**here instead of pdf we can write anything like what kind of output we want like xls, doc (rtf), etc.***/
+file = "/home/u63520353/Denymishra/ods_sample.pdf" /***here print_sample.pdf is the file name for my pdf file to be created**/
+style = Daisy; /****we can use several style for priting output----> for knowing different style we can use following code and find styles---- > proc template; list styles; run;***/
+proc print data =student1 (obs = 10 keep = First_name  Price weight bike_height) ;run;
+ods pdf close; 
+
+
+
+/**In rtf format**/
+ods rtf file="/home/u63520353/Denymishra/output_report.rtf" style = EGDefault;
+title "Observations in RTF format";
+proc print data=student1;run;
+ods rtf close; 
+
+/***********************************************************************************************************/
+/*********ODS WITH TRACE ON AND END*************************/
+ods trace on;
+/***BELOW will give us the complete objects created for the univariate- Price in the data set- student1***After this we can exclude, include and do further analysis***/
+ proc univariate data = student1;
+ var Price; /**since this univariate analysis so we have to specify only one variabe**/
+ run; /***click on the log and see several object created by ODS****/
+/** If you see the objects there are so many -- now we going to take basic measures among different ODS output and save in a different file***/
+ods ouput BasicMeasures = measures_data;/**from BasicMeasures separate output is created whose name is measures_data**/
+proc univariate data = student1; /**data file name is student1**/
+var Price;
+run;
+ods output close;
+proc print data = measures_data;run;
+
+/*****Another example taking another ODS output****/
+ods ouput TestsForLocation = test_data;/**from BasicMeasures separate output is created whose name is measures_data**/
+proc univariate data = student1; /**data file name is student1**/
+var Price;
+run;
+ods output close;
+proc print data = test_data;run;
+/****another example taking anothe ODS output********/
+ods output Quantiles = quantiles_price;/**from BasicMeasures separate output is created whose name is measures_data**/
+proc univariate data = student1; /**data file name is student1**/
+var Price;
+run;
+ods output close;
+proc print data =  quantiles_price;run;
+
+
+/********ODS SELECT---- > If you watn to see only two objects or outputs related to univariate- Price *****************/
+ods select Quantiles ExtremeObs TestsForLocation;
+proc univariate data = student1;
+var Price;
+run;
+
+/*****ODS EXCLUDE********/
+ods Exclude Quantiles ExtremeObs TestsForLocation;
+proc univariate data = student1;
+var Price;
+run;
+ods trace off;
+
+
+
+
+
+
+
+
+
+
+
+/****************************************MACROS***************************************************************/
+/*First type a. %macro-%mend  b. %let c. Using conditional formatting in macros***/
+/**Second type- Global Macro (which can be u) and Local Macro****/
+
+
+/************************************************************************************************************/
+/************************************BUIDLING Static Macro****************************************************/
+/*************************************************************************************************************/
+/***************-----MACRO--1--*************************************************************************************/
+/***if WE HAVE TO PRINT OUTPUT OF THE TABLE AGAIN AND AGIAIN- WE CAN USE MACROS*********************/
+%MACROS print; /***Here print is the name of the macro---> we can keep any name for macro but keep according to purpose so it becomes easy to understand later on for everyone*****/
+	proc print data = work.student1;
+run;
+%mend print;
+/****macro name is print and it is created---> here after wherevevr you write only %print it will display output*/
+%print; /***this is calling the macro variable print to display the ouput stored in this varaibles**/
+
+/****************************************************************************************************/
+/**********************MACRO---2---******************************************************************/
+%macro summary_stats(dataset, variable);
+  proc means data=&dataset;
+    var &variable;
+  run;
+%mend summary_stats;
+
+%summary_stats(student1, Price);/**Just put data file name and variable************/
+
+
+
+
+/*******Macros displaying both data output as well as frequency of each variables in the data set*******/
+%macros print_freq;
+	proc print data = work.student1; run;
+	proc freq data = work.student1;run;
+%mend print_freq;
+
+%print_freq;
+
+
+/*************************************************************************************************************/
+/************************************BUIDLING DYNAMIC Macro (Parameterized macros)****************************************************/
+/*************************************************************************************************************/
+%macro print_freq(aa);
+   proc print data = &aa; run;
+   proc freq data = &aa; run;
+   proc means data = &aa;run;
+%mend print_freq;
+
+
+%print_freq(aa = STPSAMP.STPBGT); /**Just change the file path or address---> above remains the same****/
+/***Here whenever you change the data name or path you will get its output printed and frequencey of the variables***/
+/*For example just %print_freq(aa = MY_PRAC.HANUMAN)*****/
+ %print_freq(aa = MY_PRAC.HANUMAN);
+ /************************************************************************************************************/
+
+%macro sorting;
+ 	proc sort data = student1; var class Price Frame_material; by First_name; run;
+%mend sorting;
+%sorting;
+
+/*************************************************************************************************************/
+/***********************USING LET FUNCTION TO CREATE MACROS**************************************************/
+%let dataset = student1;
+%let variable = Price;
+
+proc means data=&dataset;
+  var &variable;
+run;
+
+/************************************************************************************************************/
+
+%let dataset = student1;
+%let variable = Price;
+
+proc means data=&dataset (where = (class='Road'));/****Displays average price for only Road type bikes***/
+	  var &variable;
+	  title "Average Price by Road Type";
+run;
+
+/************************************************************************************************************/
+
+%let dataset = student1;
+%let variable = Price;
+
+proc means data=&dataset;
+	  var &variable;
+	  class class;/******Displays average for all class variable- Track, Mountain and Road**/
+			
+run;
+
+/************************************************************************************************************/
+%let dataset = student1;
+%let variable = Price weight;  /*Finding average of both variables at once for Price and weight*/
+
+proc means data=&dataset;
+	  var &variable;/*since two values are assigned for variable so it will be called both at once***/
+	  class class;/******Displays average for all class variable- Track, Mountain and Road
+run;
+/************************************************************************************************************/
+/*Creating macros using LET function*/
+/*If we keep changing bikeclass value like Road, Track, etc. we keep on getting different values*/ 
+%LET bikeclass = Road;
+* Use a macro variable to subset;
+PROC PRINT DATA = student1;
+ WHERE Class = "&bikeclass";
+ FORMAT Price DOLLAR6.;
+ TITLE "Current Models of &bikeclass Bicycles";
+RUN;
+/**************************************************************/
+/*Use of MACRO function for macros */
+%MACRO printit; /*here printit is only a name of a variable where we can keep any name we like*/
+PROC PRINT DATA = student1 NOOBS;
+ TITLE 'Current Models';
+ VAR First_name Second_name Class Frame_material Price;
+ FORMAT Price DOLLAR6.;
+RUN;
+%MEND printit;
+%printit
+PROC SORT DATA = student1;
+ BY Frame_material; /*Name of variable here like Frame_material will help to display output based on ascending order of this variable or column*/
+%printit
+/************************************************************************************************************/
+/*****************************CONDITIONAL MACROS*************************************************************/
+/************************************************************************************************************/
+%macro conditional_example(Price);
+
+%if &price < 1000 %then %do;
+  proc print data=student1;
+    where Price < 1000;/***change the value as per the price like 700, 400, 1000, 2000, etc.*****/
+  run;
+%end;
+%mend conditional_example;
+%conditional_example;
+
+
