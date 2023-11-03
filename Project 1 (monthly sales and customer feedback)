@@ -1,0 +1,113 @@
+data mnthly_sales; 
+ length zip $ 5 cty $ 8 var $ 10; 
+input zip $ cty $ var $ sales; 
+label zip="Zip Code" cty="County"  var="Variety" sales="Monthly Sales"; 
+datalines; 
+52423 Scott Merlot 186.00
+52423 Scott Merlot  145.00
+52423 Scott Chardonnay 178.06
+52388 Scott Chardonnay 35.09
+52423 Scott Zinfandel 56.09
+52388 Scott Zinfandel 58.00
+52423 Scott Merlot  45
+52200 Adams Merlot 88
+52388 Scott Merlot 88
+52200 Adams Chardonnay 78
+52388 Scott Chardonnay 166
+52200 Adams Zinfandel  56
+52388 Scott Zinfandel 45.0
+52200 Adams Chardonnay 77.01
+52200 Adams Merlot 50
+52199 Adams Merlot 49
+52200 Adams Chardonnay 55
+52199 Adams Chardonnay 56
+52200 Adams Zinfandel 78
+52199 Adams Zinfandel 79
+52200 Adams Chardonnay 90
+52199 Adams Merlot 34
+52199 Adams Chardonnay 119
+52199 Adams Zinfandel 200
+; 
+run;
+
+proc print data=mnthly_sales; 
+title "Raw Data";
+ run;
+/*****************************************************************/
+Proc print data = mnthly_sales; 
+var cty zip var sales;
+Title "Simple Report";
+Run; 
+
+/****************************************************************/
+data new_dataset;
+	set mnthly_sales (rename=(cty = county_name));
+run;
+proc print data = new_dataset;run; 
+
+proc sort data = new_dataset; by county_name;run;
+/*****************************************************************/
+Proc print data = mnthly_sales; 
+var cty zip var sales;
+format sales 8.2;
+Title "Edited Simple Report";
+Run;
+
+/*********************************************************************/
+
+data SelectedVars;
+  set mnthly_sales(Drop = sales); /*****Kept county, zip and var variables from the data set by dropping sales variables**/
+run;
+proc print data = SelectedVars;title 'Grouped Report';run;
+proc sort data = SelectedVars; by descending var;run;
+/***********************************************************************/
+proc means data = mnthly_sales std mean; var sales; run; 
+/***********************************************************************/
+
+data report_with_breaks;
+	set mnthly_sales;
+	rename cty = county var = grape_variety sales = Revenue;
+run;
+proc print data = report_with_breaks;run;
+proc sort data = report_with_breaks; by descending grape_variety;run;
+proc summary data = report_with_breaks; 
+	output 
+		out = summary_report;
+		var Revenue; /***we cannot find the summary of categorical data likeu county**/ 
+	run;
+proc print data = summary_report;title 'Revenue Summary'; run;
+/************************************************************************************/
+data feedback;
+  input CUSTOMER $ SCORE COMMENT $30.; /***use dot after $30 ***/
+ datalines;
+	A 3 There is no parking
+	A 5 The food is expensive
+	B . I like the food
+	C 5 It tastes good
+	C . .
+	C 3 I like the drink
+	D 4 The dessert is tasty
+	D 2 I don't like the services
+;
+run;
+proc print data = feedback;run;
+
+%macro 
+subset(cust); 
+proc print data= feedback;
+ where CUSTOMER = "&cust";
+  run;
+%mend;
+/* Call the %subset macro for different customers */
+%subset(cust=A);
+%subset(cust=B);
+%subset(cust=C);
+%subset(cust=D);
+
+
+
+
+
+
+ 
+ 
