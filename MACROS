@@ -34,7 +34,9 @@ Earthquake Wilson Road 600 Aluminum 24 55
 Volcano Brown Track 850 Aluminum 21 56
 Tsunami Garcia Mountain 1950 Carbon 18 60
 run;
-
+/****************************************MACROS***************************************************************/
+/*First type a. %macro-%mend  b. %let c. Using conditional formatting in macros***/
+/**Second type- Global Macro (which can be u) and Local Macro****/
 
 
 %let dataset = student1;
@@ -43,94 +45,11 @@ run;
 
 proc univariate data = &dataset; boxplot weight;run;
 
-
-
-
-
-
-
-
-
-
-
 proc print data = student1;run;
 /*********************************************************************************************************/
 proc print data = student1 (obs = 10 keep = First_name  Price weight bike_height);run;
-/*********************************************************************************************************/
-/**********************USE OF ODS*******************************/
-/*********************************************************************************************************/
-/***PDF FORMTAT*******/
-ods pdf /**here instead of pdf we can write anything like what kind of output we want like xls, doc (rtf), etc.***/
-file = "/home/u63520353/Denymishra/ods_sample.pdf" /***here print_sample.pdf is the file name for my pdf file to be created**/
-style = Daisy; /****we can use several style for priting output----> for knowing different style we can use following code and find styles---- > proc template; list styles; run;***/
-proc print data =student1 (obs = 10 keep = First_name  Price weight bike_height) ;run;
-ods pdf close; 
+ data = test_data;run;
 
-
-
-/**In rtf format**/
-ods rtf file="/home/u63520353/Denymishra/output_report.rtf" style = EGDefault;
-title "Observations in RTF format";
-proc print data=student1;run;
-ods rtf close; 
-
-/***********************************************************************************************************/
-/*********ODS WITH TRACE ON AND END*************************/
-ods trace on;
-/***BELOW will give us the complete objects created for the univariate- Price in the data set- student1***After this we can exclude, include and do further analysis***/
- proc univariate data = student1;
- var Price; /**since this univariate analysis so we have to specify only one variabe**/
- run; /***click on the log and see several object created by ODS****/
-/** If you see the objects there are so many -- now we going to take basic measures among different ODS output and save in a different file***/
-ods ouput BasicMeasures = measures_data;/**from BasicMeasures separate output is created whose name is measures_data**/
-proc univariate data = student1; /**data file name is student1**/
-var Price;
-run;
-ods output close;
-proc print data = measures_data;run;
-
-/*****Another example taking another ODS output****/
-ods ouput TestsForLocation = test_data;/**from BasicMeasures separate output is created whose name is measures_data**/
-proc univariate data = student1; /**data file name is student1**/
-var Price;
-run;
-ods output close;
-proc print data = test_data;run;
-/****another example taking anothe ODS output********/
-ods output Quantiles = quantiles_price;/**from BasicMeasures separate output is created whose name is measures_data**/
-proc univariate data = student1; /**data file name is student1**/
-var Price;
-run;
-ods output close;
-proc print data =  quantiles_price;run;
-
-
-/********ODS SELECT---- > If you watn to see only two objects or outputs related to univariate- Price *****************/
-ods select Quantiles ExtremeObs TestsForLocation;
-proc univariate data = student1;
-var Price;
-run;
-
-/*****ODS EXCLUDE********/
-ods Exclude Quantiles ExtremeObs TestsForLocation;
-proc univariate data = student1;
-var Price;
-run;
-ods trace off;
-
-
-
-
-
-
-
-
-
-
-
-/****************************************MACROS***************************************************************/
-/*First type a. %macro-%mend  b. %let c. Using conditional formatting in macros***/
-/**Second type- Global Macro (which can be u) and Local Macro****/
 
 
 /************************************************************************************************************/
