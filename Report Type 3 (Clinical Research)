@@ -1,0 +1,88 @@
+libname RangTask '/home/u63520353/Denymishra';
+proc import datafile = '/home/u63520353/Denymishra/Project_3_data.xls' dbms = xls out= rangtask.project4; getnames = yes;run;
+proc print data = rangtask.project4;run;
+/**************************************************************************************************************/
+/***doubling the data******/
+/**Doubling the data is done to find overall total ****/
+data doubled_data;
+set rangtask.project4; output;
+ Trt01p = 'Total'; output;
+run;
+proc print data = doubled_data;run;
+/*sorting data*/
+proc sort data = doubled_data out = sorted_data; by Trt01p;run; 
+proc print data = sorted_data;run;
+/**Complete Response (CR) Statistics**/
+ proc freq data = sorted_data noprint;
+ by Trt01p;
+ tables AVALC / out = avalc_category;
+ run;
+ proc print data = avalc_category;run;
+
+/**concatenate**/
+data concatenated_avalc;
+	set avalc_category;
+	np = put (count, 3.0) || '(' || put (percent, 4.1)|| ')';
+	drop count percent;
+run;
+proc print data = concatenated_avalc;run;
+
+data new_avalc1;
+set concatenated_avalc; 
+If Trt01p = 'Drug A' then Trt01p = 'Drug_A';
+run;
+proc print data = new_avalc1;run;
+
+/**transpose**/
+proc sort data = new_avalc1; by AVALC;run;
+proc transpose data = new_avalc1 out = transposed_data;
+id Trt01p;
+var np;
+by AVALC;
+run;
+proc print data = transposed_data;run;
+
+data avalc1;
+set transposed_data;
+drop _NAME_;run;
+proc print data = avalc1;run;
+/***********************************************************************************************************/
+/**selecting observations out of all and presenting as per the mock report**/
+
+data avalc2;
+	length newvar $120.;
+	set avalc1;
+	If AVALC = 'CR' then newvar = 'COMPLETE RESPONSE(CR)';
+	Else if AVALC = 'PR' then newvar = 'PARTIAL RESPONSE(PR)';
+	Else if AVALC  = 'SD' then newvar = 'STABLE DISEASE(SD)';
+	Else if AVALC  = 'PD' then newvar = 'PROGRESSIVE DISEASE(PD)';
+	Else If AVALC  = 'NE' then newvar = 'NOT EVALUABLE(NE)';
+	drop AVALC ;
+run;
+proc print data =avalc2;run;
+ proc sort data = avalc2 out = sorted_avalc2; by newvar;run;
+ proc print data = sorted_avalc2;run;
+ 
+ data dummy;
+ length newvar $80.;
+ newvar = 'BEST OVERALL RESPONSE (RECIST 1.1, CONFIRMATION OF RESPONSE REQUIRED):';
+ run;
+ 
+ data total_avalc;
+ set dummy sorted_avalc2;
+ run;
+ proc print data = total_avalc;run;
+ /*************************REPORT BUILDING********************************************************************/
+/**report design**/
+proc report data=total_avalc  nowd split='*' headline headskip;
+column newvar Drug_A Placebo Total;
+run;
+proc report data = total_avalc nowd headline headskip split = '*';
+title1 h = 12pt justify = center 'Best Overall Response Per Investigator';
+title2 h = 12pt justify = center 'All Treated Subjects';
+column (newvar) ('Treatment' Drug_A Placebo Total);
+define newvar/''; /**noprint---it will completely remove the column-------here is order is kept to put everything in order but we don;t want in final report so we alsu use noprint and remove in the final report*/
+define Drug_A/'Trt A * N = 50 ';
+define Placebo/'Trt B * N = 50';
+define Total/'Total * N = 100';
+run;
