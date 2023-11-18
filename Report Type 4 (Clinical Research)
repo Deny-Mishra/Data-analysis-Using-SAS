@@ -1,0 +1,65 @@
+libname rangtask '/home/u63520353/Denymishra';
+proc import datatile = '/home/u63520353/Denymishra/Project_4_data.xls' out = rangtask.project5 dbms = xls; getnames = yes;run;
+proc print data = rangtask.project5;run;
+/***************************************************************************************************************/
+proc sort data = rangtask.project5 out = sorted_data; by AVISITN_1;run;
+proc print data = sorted_data;run;
+/**************************************************************************************************************/
+proc freq data = sorted_data; 
+by AVISITN_1;
+tables Trt01p/ out = avisit1;
+run;
+proc print data = avisitn1;run;
+/**finding N and MEans as per the mock report**/
+proc means data=sorted_data noprint;
+    class AVISITN_1 Trt01p;
+    var AVAL;
+    output out=summary_data N=_N Mean=_Means stderr = _SE;
+run;
+proc print data= summary_data;run;
+
+data avisitn3;
+set summary_data;
+drop _TYPE_ _FREQ_;
+run;
+proc print data = avisitn3;run;
+
+/* Filter and keep only observations 9 to 18 */
+data filtered_data;
+    set avisitn3(firstobs=9 obs=18);
+run;
+proc print data= filtered_data;run;
+
+/**concatenate**/
+data concatenated_avisitn;
+	set filtered_data;
+	np = put (_Means, 4.3) || '(' || put (_SE, 4.3)|| ')';
+	drop _Means _SE;
+run;
+proc print data = concatenated_avisitn;run;
+
+/*****************************************************************************************************************************/
+proc report data=concatenated_avisitn nowd split='*' headline headskip;
+   column AVISITN_1 Trt01p _N np;
+   title1 h = 12pt justify = center 'Summary of Blood Glucose Level Over Time';
+	title2 h = 12pt justify = center 'Safety Population';
+    define AVISITN_1 / group;
+   define Trt01p / 'Treatment' display;
+   define _N / 'Count' display; /* Ensure using _N instead of AVALC if that's the original variable name */
+   define np / 'Mean (SE)' display;
+run;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
