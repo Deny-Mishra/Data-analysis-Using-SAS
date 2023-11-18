@@ -1,0 +1,173 @@
+/***build a library**/
+libname RangTsk1 '/home/u63520353/Denymishra'; /**don't use special character and numbers while naming library name **/
+
+/**import the data and put in the library build above "rangtask" as rangdata**/ 
+proc import datafile = '/home/u63520353/Denymishra/Project_2_data.xls' dbms = xls out = rangtsk1.rangdata2; 
+run;
+proc print data = rangtsk1.rangdata2;run;
+/****Sorted data by treatement before finding statistics*****/
+Proc sort data = rangtsk1.rangdata2 out = sorted_data; by TRTA;run;
+proc print data=sorted_data;run;
+
+/*******************************************************/
+/**AEDECOD categorization**/
+
+data filtered_dataset;
+   set sorted_data; /* Replace 'your_dataset_name' with your actual dataset name */
+   where AEDECOD in ('Anaemia', 'Atrial fibrillation', 'Palpitations', 'Pericardial effusion');
+run;
+proc print data = filtered_dataset;run;
+
+proc sort data = filtered_dataset out = sorted_aedecod; by TRTA;run;
+proc print data = sorted_aedecod;run;
+
+proc freq data = sorted_aedecod noprint;
+ by TRTA;
+ tables AEDECOD / out = aedecod_category;
+ run;
+ proc print data = aedecod_category;run;
+ 
+ data edited_aedecod;
+ set aedecod_category;
+ If TRTA = 'Active Drug A' then TRTA = 'Drug_A';
+ run;
+ proc print data = edited_aedecod;run;
+
+/**concatenate COUNT and PERCENT**/
+data concatenated_AEDECOD;
+	set edited_aedecod;
+	np = put (count, 3.0) || '(' || put (percent, 4.1)|| ')';
+	drop count percent;
+run;
+proc print data = concatenated_AEDECOD;run;
+
+/*transpose*/
+proc sort data = concatenated_AEDECOD; by AEDECOD;run;
+proc transpose data = concatenated_AEDECOD out = transposed_aedecod; 
+id TRTA;
+var np;
+by AEDECOD;run;
+proc print data = transposed_aedecod;run;
+/**dropping _NAME_ variable from the output table**/
+data aedecod_data;
+	set transposed_aedecod;
+	drop _NAME_;
+run;
+proc print data = aedecod_data;run;
+
+/**selecting observations out of all and presenting as per the mock report**/
+data preparing_aedecod;
+	length newvar $30.;
+	set aedecod_data;
+	If AEDECOD = 'Anaemia' then newvar = 'ANAEMIA';
+	Else If AEDECOD = 'Atrial fibrillation' then newvar = 'ATRIAL FIBRILLATION';
+	Else if AEDECOD = 'Palpitations' then newvar = 'PALPITATIONS';
+	Else if AEDECOD = 'Decreased appetite' then newvar = 'DECREASED APPETITE';
+	Else if AEDECOD = 'Pericardial effusion' then newvar = 'PERICARDIAL EFFUSION';
+	drop AEDECOD;
+run;
+proc print data = preparing_aedecod;run;
+
+/**************************************************************************************************************/
+/******AEBODSYS STATISTICS*******/
+ data filtered_dataset1;
+   set sorted_data; /* Replace 'your_dataset_name' with your actual dataset name */
+   where AEBODSYS in ('Blood and lymphatic system disorders', 'Cardiac disorders');
+run;
+proc print data = filtered_dataset1;run;
+ 
+ proc freq data = filtered_dataset1 noprint;
+ by TRTA;
+ tables AEBODSYS / out = aebodsys_category;
+ run;
+ proc print data = aebodsys_category;run;
+ 
+ data edited_aebodsys;
+ set aebodsys_category;
+ If TRTA = 'Active Drug A' then TRTA = 'Drug_A';
+ run;
+ proc print data = edited_aebodsys;run;
+ 
+/**concatenate COUNT and PERCENT**/
+data concatenated_aebodsys1;
+	set edited_aebodsys;
+	np = put (count, 3.0) || '(' || put (percent, 4.1)|| ')';
+	drop count percent;
+run;
+proc print data = concatenated_aebodsys1;run;
+
+data new_aebodsys;
+set concatenated_aebodsys1;
+If TRTA = 'Active Drug A' then TRTA = 'Group_A';
+run;
+proc print data = new_aebodsys;run;
+
+/**transpose**/
+proc sort data = new_aebodsys out = sorted_aebodsys; by AEBODSYS; run;
+proc transpose data = sorted_aebodsys out = transposed_aebodsys; 
+id TRTA;
+var np;
+by AEBODSYS;run;
+proc print data = transposed_aebodsys;run;
+/**dropping _NAME_ variable from the output table**/
+data aebodsys_data;
+	set transposed_aebodsys;
+	drop _NAME_;
+run;
+proc print data = aebodsys_data;run;
+
+data preparing_aebodsys;
+	length newvar $60.;
+	set aebodsys_data;
+	If AEBODSYS = 'Blood and lymphatic system disorders' then newvar = 'BLOOD AND LYMPHATIC SYSTEM DISORDERS';
+	Else If AEBODSYS = 'Cardiac disorders' then newvar = 'CARDIAC DISORDERS';
+	drop AEBODSYS;
+run;
+proc print data = preparing_aebodsys;run;
+
+/************************************************************************************************************/
+data final_data1;
+set preparing_aebodsys preparing_aedecod;
+run;
+proc print data = final_data1;run;
+
+
+data dummy1;
+    length newvar $30 Placebo $9 Drug_A $9 ;
+    input newvar $ Placebo $ Drug_A $ ;
+    datalines;
+TOTAL_SUBJECTS_WITH_AN_EVENT 27(100%) 28(100%)
+;
+run;
+
+proc print data=dummy1;
+run;
+
+data final_data2;
+length newvar $60.;
+set dummy1 final_data1;
+run;
+proc print data = final_data2;run;
+
+data final_data3;
+set final_data2;
+If Drug_A = '' then Drug_A = 0;
+run;
+proc print data = final_data3;run;
+
+data edited_finaldata;
+set final_data3;
+If newvar = 'TOTAL_SUBJECTS_WITH_AN_EVENT' then newvar = 'TOTAL SUBJECTS WITH AN EVENT';
+run;
+proc print data = edited_finaldata;run;
+ 
+/**final report designing*/
+
+proc report data=edited_finaldata nowd headline headskip split='*';
+   title1 h=12pt justify=center 'SAFETY POPULATION';
+   column newvar ('Treatment' Placebo Drug_A);
+   define newvar/ 'System Organ Class (%) * Preferred Term (%)';
+   define Drug_A/ 'Treatment Group A *(N=28)';
+   define Placebo/ 'Placebo *(N=27)';
+run;
+
