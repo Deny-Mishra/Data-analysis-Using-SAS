@@ -1,0 +1,471 @@
+
+
+/***build a library**/
+libname RangTask '/home/u63520353/Denymishra'; /**don't use special character and numbers while naming library name **/
+
+/**import the data and put in the library build above "rangtask" as rangdata**/ 
+proc import datafile = '/home/u63520353/Denymishra/Project_1_data.xlsx' dbms = xlsx out = rangtask.rangdata23; 
+run;
+proc print data = rangtask.rangdata23;run;
+/*************************************************************************************************************/
+
+/***doubling the data******/
+/**Doubling the data is done to find overall total ****/
+Data doubled_data;
+    Set rangtask.rangdata23;output;
+Trt01p = 'Total'; output; /**writing output and output twice will double observations***/
+Run;
+proc print data = doubled_data;run;/**number of observations have doubled from 100 to 200***/
+
+/****Sorted data by treatement before finding statistics*****/
+Proc sort data = doubled_data out = sorted_data; by Trt01p;run;
+proc print data=sorted_data;run;
+/************************************************************************************************************/
+/*************************************************************************************************************/
+/**Age Statistics***/
+proc summary data = sorted_data;
+	by Trt01p;
+	var Age;
+	output out = Age1 n = _n mean = _mean median = _mdn min = _mn max = _mx std = _std;
+run;
+proc print data = Age1;run;
+/**concatenate **/
+data age2a;
+	set Age1;
+	meansd = put(_mean,4.0);
+	mediand = put (_mdn,4.0);
+	stddeviation = put(_std,4.1);
+	mnmx = put(_mn,3.0) || ',' || put(_mx,3.0);
+	drop _mean _mdn _mn _mx _std;
+run;
+proc print data=age2a;run;
+
+data new_age;
+set age2a;
+If Trt01p = 'Drug A' then Trt01p = 'Drug_A';
+run;
+proc print data = new_age;run;
+
+proc transpose data = new_age out = age3;
+	id Trt01p;
+	var _n meansd mediand mnmx stddeviation;
+run;
+proc print data=age3; run;
+	
+
+data age3;
+	length newvar $30;
+	set age3;
+	If _name_ = '_n' then newvar = 'N';
+	Else if _name_ = 'meansd' then newvar = 'MEAN';
+	Else if _name_ = 'mediand' then newvar = 'MEDIAN';
+	Else if _name_ = 'mnmx' then newvar = 'MIN , MAX';
+	Else if _name_ = 'stddeviation' then newvar = 'STANDARD DEVIATION';
+	drop _label_ _name_;
+RUN;
+proc print data = age3;run;
+
+data dummy1;
+	length newvar $30.;
+	newvar = 'AGE';
+run;
+
+data age_data;
+	set dummy1 age3;
+	ord = 1;
+run;
+proc print data = age_data;run;
+/************************************************************************************************************/
+/*************************************************************************************************************/
+/**AGE categorization**/
+ proc freq data = sorted_data noprint;
+ by Trt01p;
+ tables AGegr1 / out = age_category;
+ run;
+ proc print data = age_category;run;
+ /**concatenate percen and count **/
+data age_category2;
+	set age_category;
+np = put (count, 3.0) || '(' || put (percent, 4.1)|| ')';
+drop count percent;
+run;
+proc print data = age_category2;run;
+
+data new_age;
+set age_category2;
+If Trt01p = 'Drug A' then Trt01p = 'Drug_A';
+run;
+proc print data = new_age;run;
+
+
+/**Transpose**/
+proc sort data = new_age;by AGegr1;run;
+proc transpose data = new_age out = age_transposed;
+	id Trt01p;
+	var np;
+	by AGegr1;
+run;
+proc print data = age_transposed; run;
+
+/**dropping _NAME_ variable from the output table**/
+data age_categorization;
+	set age_transposed;
+	drop _NAME_;
+run;
+proc print data = age_categorization;run;
+
+data final_agecategorydata;
+	length newvar $30.;
+	set age_categorization;
+	If AGegr1 = '<65' then newvar = '<65';
+	Else if AGegr1 = '>=65' then newvar = '>=65';
+	drop AGegr1;
+run;
+proc print data = final_agecategorydata;run;
+
+data dummy3;
+	length newvar $30.;
+	newvar = 'AGE CATEGORIZATION (%)';
+run;
+
+data age_categorizations;
+	set dummy3 final_agecategorydata;
+	ord = 2;
+run;
+proc print data = age_categorizations;run;
+	
+/************************************************************************************************************/
+/*************************************************************************************************************/
+
+/**Sex Statistics or Summary** -----since they all are dummy or character variable so we use proc freq to find summary**/
+proc freq data = sorted_data noprint;
+by Trt01p;
+tables SEX/out = sex1;run;
+proc print data = sex1;run; 
+/**concatenate count and percent together becoz we need them juxtapose to eachother on the final report**/
+data sex2;
+	set sex1;
+	np = put (count, 3.0) || '(' || put (percent, 4.1)|| ')';
+run;
+proc print data = sex2;run;
+
+data new_sex2;
+set sex2;
+if Trt01p = 'Drug A' then Trt01p = 'Drug_A';
+run;
+proc print data = new_sex2;run;
+
+/**transpose**/
+proc sort data = new_sex2; by SEX;run;
+proc transpose data = new_sex2 out = sex_transposed;
+id Trt01p;
+var np;
+by SEX;
+run;
+proc print data = sex_transposed;run;
+
+/**renaming F as female and M as male in the output**/
+data sex3;
+length newvar $30.;
+  set sex_transposed;
+  if SEX = 'F' then newvar = "Female";
+  Else if SEX = 'M' then newvar = "Male";
+  drop SEX _NAME_;
+ run;
+proc print data = sex3;run;
+/**using % in bracket like SEX (%) to present in final report**/
+/** First step--- create a dummy variable and concatenate with above output**/
+data dummy;
+	length newvar $30.;
+	newvar = 'Gender (%)';
+run;
+/**final setting of Gender***/
+data gender;
+  set dummy sex3;
+  ord = 3;
+ run;
+proc print data = gender;run;
+
+
+/************************************************************************************************************/
+/*************************************************************************************************************/
+/**********************************************************************************************************/
+  /**RACE statistics or summary**/
+
+proc freq data= sorted_data noprint;
+by Trt01p;
+tables RACE /out = race_stats;
+where RACE IN ('White', 'Black', 'Asian', 'Other'); /**according to mock output we have to only show the four out of all races in the final report**/
+run;
+proc print data = race_stats;run;
+
+/**concatenate count and percent together**/
+data race2;
+	set race_stats;
+	np = put (count, 3.0) || '(' || put (percent, 4.1)|| ')';
+	drop count percent;
+run;
+proc print data = race2;run;
+
+data new_race2;
+set race2;
+If Trt01p = 'Drug A' then Trt01p = 'Drug_A';
+run;
+proc print data = new_race2;run;
+/**tranpose**/
+proc sort data = new_race2; by RACE;run;
+proc print data = new_race2;run;
+proc transpose data = new_race2 out = race_transposed;
+id Trt01p;
+var np;
+by RACE;
+run;
+proc print data = race_transposed;run;
+
+/**dropping _NAME_ variable**/
+data final_race;
+	set race_transposed;
+	drop _NAME_;
+run;
+proc print data = final_race; run;
+
+/**Putting (%) after RACE in final report**/
+/**first create a dataset with RACE (%) and then concatenate**/
+
+data race_dataaa;
+	length newvar $30;
+ set final_race;
+	If RACE = 'Asian' then newvar = 'ASIAN';
+	Else if RACE = 'Black' then newvar = 'BLACK or AFRICAN AMERICAN';
+	Else if RACE = 'Other' then newvar = 'OTHER';
+	Else if RACE = 'White' then newvar = 'WHITE';
+	drop RACE;
+RUN;
+
+proc print data = race_dataaa;run;
+
+data dummy_race;
+	length newvar $30.;
+	newvar = 'RACE (%)';
+run;
+
+data race_final;
+	set  dummy_race race_dataaa;
+	ord = 4; 
+run;
+proc print data= race_final;run;
+
+
+/************************************************************************************************************/
+/*************************************************************************************************************/
+/**Ethnic Statistics**/
+proc freq data = sorted_data noprint;
+by Trt01p;
+tables Ethnic / out = ethnic1;
+run;
+proc print data = ethnic1;run;
+/*concatenate count and percent**/
+data concatenate_ethnic;
+	set ethnic1;
+	np = put (count,4.1) || '(' || put (percent,4.1) || ')';
+	drop percent count;
+run;
+proc print data = concatenate_ethnic;run;
+
+data new_ethnic;
+set concatenate_ethnic;
+If Trt01p = 'Drug A' then Trt01p = 'Drug_A';
+run;
+proc print data = new_ethnic;run;
+/**Transpose**/
+proc sort data = new_ethnic;by Ethnic;run;
+proc print data = new_ethnic;run;
+
+proc transpose data = new_ethnic out = ethnic_transposed;
+	id Trt01p;
+	var np;
+	by Ethnic;
+run;
+proc print data = ethnic_transposed;run;
+
+/**treating the missing value under Hispanic row**/
+/**creating common column as newvar**/
+data ethnic4;
+	length newvar $30;
+ set ethnic_transposed;
+	If Ethnic = 'Hispanic' then newvar = 'HISPANIC/LATINO';
+	Else if Ethnic = 'Non-Hispanic' then newvar = 'NOT HISPANIC/LATINO';
+	drop Ethnic _NAME_;
+RUN;
+
+proc print data = ethnic4;run;
+
+data dummy_ethnic;
+	length newvar $30.;
+	newvar = 'ETHNICITY (%)';
+run;
+
+data ethnic_final;
+	set  dummy_ethnic ethnic4;
+	ord = 5;
+run;
+proc print data= ethnic_final;run;
+
+
+/***STILL RACE IS NOT ARRANGED ACCRODING TO MOCK REPORT***/
+
+
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/**Platelet count(Pltcnt) Stats***/
+
+ proc summary data = sorted_data;
+	by Trt01p;
+	var Pltcnt;
+	output out = Pltcnt1 n = _n mean = _mean median = _mdn min = _mn max = _mx std = _std;
+run;
+proc print data = Pltcnt1;run;
+/**concatenate **/
+data Pltcnt2;
+	set Pltcnt1;
+	meansd = put(_mean,4.0);
+	mediand = put (_mdn,4.0);
+	stddeviation = put(_std,4.1);
+	mnmx = put(_mn,3.0) || ',' || put(_mx,3.0);
+	drop _mean _mdn _mn _mx _std;
+run;
+proc print data=Pltcnt2;run;
+
+data new_pltcnt2;
+set Pltcnt2;
+If Trt01p = 'Drug A' then Trt01p = 'Drug_A';
+run;
+proc print data = new_pltcnt2;run;
+
+/**transpose**/
+proc sort data = new_pltcnt2 out = sorted_pltcnt2; by Trt01p; run;
+proc transpose data = new_pltcnt2 out = Pltcnt3;
+	id Trt01p;
+	var _n meansd mediand mnmx stddeviation;
+run;
+proc print data=Pltcnt3; run;
+	
+/**final pltcnt stats as per mock report**/
+data final_Pltcnt;
+	length newvar $30;
+	set Pltcnt3;
+	If _name_ = '_n' then newvar = 'N';
+	Else if _name_ = 'meansd' then newvar = 'MEAN';
+	Else if _name_ = 'mediand' then newvar = 'MEDIAN';
+	Else if _name_ = 'mnmx' then newvar = 'MIN , MAX';
+	Else if _name_ = 'stddeviation' then newvar = 'STANDARD DEVIATION';
+	drop _label_ _name_;
+RUN;
+proc print data = final_Pltcnt;run;
+
+data dummy5;
+	length newvar $30.;	
+	newvar = 'PLATELET COUNT';
+run;
+
+data platelete_data;
+	set dummy5 final_Pltcnt;
+	ord = 6;
+run;
+proc print data = platelete_data;run;
+
+
+/*************************************************************************************************************/
+/*************************************************************************************************************/
+/*******FINAL REPORT MAKING*********/
+
+data final_data;
+	set age_data age_categorizations gender race_final ethnic_final platelete_data;
+	run;
+proc print data = final_data;run;
+
+proc report data = final_data nowd headline headskip split = '*';
+title1 h = 12pt justify = center 'Demographic and Baseline Characteristics Summary';
+title2 h = 10pt justify = center 'All Randomized Subjects';
+column (ord newvar) ('Treatment' Drug_A Placebo Total);
+define ord/order noprint; /**noprint---it will completely remove the column-------here is order is kept to put everything in order but we don;t want in final report so we alsu use noprint and remove in the final report*/
+break after ord/skip;
+define newvar/'';   /** ----'' single semi-colon is used ot only remove the heading'newvar' heading in the output, unlike the entire column**/
+define Drug_A / 'TRT A * N = 50';
+define Placebo/ 'TRT B * N = 50';
+define Total / 'Total * N = 100';
+/*compute before _page_;
+line @20 'Demographic and Baseline Characteristics Summary';
+line @40 'All Randomized Subjects';
+line ''; here this will give one line space empty
+endcomp;*/
+compute after;
+line @1 250 * '-';
+line @3 'Note for Programmer:';
+endcomp;
+run;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
