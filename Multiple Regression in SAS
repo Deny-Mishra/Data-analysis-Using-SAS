@@ -1,0 +1,56 @@
+/*Using data available from the SAS database inside sashelp named 'cars'*/
+proc print data = sashelp.cars;run;
+/*checking any missing values in the dataset*/
+proc means data = sashelp.cars nmiss;run;
+/*found that 2 observations in the column name- cylinder are missing*/
+
+/*Removing NA values*/
+data cleaned_dataset;
+  set sashelp.cars;
+  if not missing(Cylinders);
+run;
+proc means data = cleaned_dataset nmiss;run;
+proc print data = cleaned_dataset;run;
+/*after cleaning there is no any missing values in the dataset*/
+
+
+/*Taking Difference and keeping other variables intact*/
+data stationary_data;
+  set cleaned_dataset;
+  msrp = MSRP;
+  Cyc = Cylinders;
+  mile_city = MPG_City;
+  MPG_hgh = MPG_Highway;
+  Wheel = Wheelbase;
+  Len = Length;
+  diff_Invoice = Invoice - lag(Invoice);
+  diff_Weight = Weight - lag(Weight);
+  diff_horse = Horsepower - lag(Horsepower);
+run;
+
+proc print data = stationary_data;
+run;
+
+/* Again removing NA */
+data final_data;
+  set stationary_data;
+  if not missing(msrp) and not missing(diff_horse) and not missing(Cyc) and not missing(mile_city) and 
+     not missing(diff_Weight) and not missing(MPG_hgh) and not missing(Wheel) and 
+     not missing(Len) and not missing(diff_Invoice);
+run;
+proc print data = final_data;run;
+/*Removing NA created due to taking first difference*/
+proc means data = final_data nmiss;
+run;
+
+
+/* checking stationarity */
+proc autoreg data = final_data;
+model diff_Invoice= diff_horse diff_Weight msrp Cyc mile_city MPG_hgh Wheel Len;
+run;
+/*Multiple Regression*/
+proc reg data=final_data;
+ model diff_Invoice= diff_horse diff_Weight msrp Cyc mile_city MPG_hgh Wheel Len;
+run;
+
+
